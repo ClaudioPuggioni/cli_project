@@ -1,30 +1,75 @@
+use std::collections::HashMap;
+
 pub enum Status {
-    // TODO: add fields (make sure the fields are public)
+    Open,
+    InProgress,
+    Closed,
 }
 
 pub struct Epic {
-    // TODO: add fields (make sure the fields are public)
+    pub id: u16,
+    pub name: String,
+    pub description: String,
+    pub status: Status,
+    pub stories: Vec<u16>,
 }
 
 impl Epic {
-    pub fn new(name: String, description: String) -> Self {
-        // by default the status should be set to open and the stories should be an empty vector
-        todo!()
+    pub fn new(name: String, description: String, id: u16) -> Self {
+        Epic {
+            id,
+            name,
+            description,
+            status: Status::Open,
+            stories: Vec::new(),
+        }
     }
 }
 
 pub struct Story {
-    // TODO: add fields (make sure the fields are public)
+    pub id: u16,
+    pub name: String,
+    pub description: String,
+    pub status: Status,
 }
 
 impl Story {
-    pub fn new(name: String, description: String) -> Self {
-        // by default the status should be set to open
-        todo!()
+    pub fn new(name: String, description: String, id: u16) -> Self {
+        Story {
+            id,
+            name,
+            description,
+            status: Status::Open,
+        }
     }
 }
 
 pub struct DBState {
-    // This struct represents the entire db state which includes the last_item_id, epics, and stories
-    // TODO: add fields (make sure the fields are public)
+    pub last_item_id: u16,
+    pub epics: HashMap<u16, Epic>,
+    pub stories: HashMap<u16, Story>,
+}
+
+impl DBState {
+    pub fn new() -> DBState {
+        DBState {
+            last_item_id: 0,
+            epics: HashMap::new(),
+            stories: HashMap::new(),
+        }
+    }
+
+    pub fn create_epic(&mut self, name: String, description: String) {
+        self.last_item_id += 1;
+        let new_id = self.last_item_id;
+        let new_epic = Epic::new(name, description, new_id);
+        self.epics.insert(new_id, new_epic);
+    }
+
+    pub fn create_story(&mut self, name: String, description: String) {
+        self.last_item_id += 1;
+        let new_id = self.last_item_id;
+        let new_story = Story::new(name, description, new_id);
+        self.stories.insert(new_id, new_story);
+    }
 }
