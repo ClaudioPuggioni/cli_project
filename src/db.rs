@@ -1,6 +1,6 @@
 // use std::fs;
 
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 // use serde::{Deserialize, Serialize};
 
 use crate::models::{DBState, Epic, Status, Story};
@@ -22,6 +22,12 @@ impl JiraDatabase {
             .map_err(|e| anyhow!("Reading database failed {}", e))
     }
 
+    pub fn write_db(&self, db: &DBState) -> Result<(), anyhow::Error> {
+        self.database
+            .write_db(db)
+            .map_err(|e| anyhow!("Writing to database failed {}", e))
+    }
+
     pub fn create_epic(&self, epic: Epic) -> Result<u32> {
         let jira_db = self.read_db();
         // .map_err(|e| anyhow!("Jira database retrieval failed {}", e));
@@ -30,6 +36,12 @@ impl JiraDatabase {
             Ok(mut db) => {
                 db.last_item_id += 1;
                 db.epics.insert(db.last_item_id, epic);
+                self.write_db(&db).with_context(|| {
+                    format!(
+                        "Failed to write to database in create_epic for id {}",
+                        db.last_item_id
+                    )
+                })?;
                 Ok(db.last_item_id)
             }
             Err(e) => Err(anyhow!("Epic insertion failed {}", e)),
@@ -218,7 +230,6 @@ mod tests {
         let epic = Epic::new("".to_owned(), "".to_owned());
 
         let result = db.create_epic(epic.clone());
-
         assert!(result.is_ok());
 
         let id = result.unwrap();
@@ -227,6 +238,7 @@ mod tests {
         let expected_id = 1;
 
         assert_eq!(id, expected_id);
+        // print!("db_state.last_item_id {}", db_state.last_item_id);
         assert_eq!(db_state.last_item_id, expected_id);
         assert_eq!(db_state.epics.get(&id), Some(&epic));
     }
@@ -314,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn delete_story_should_error_if_invalid_epic__id() {
+    fn delete_story_should_error_if_invalid_epic_id() {
         let db = JiraDatabase {
             database: Box::new(MockDB::new()),
         };
