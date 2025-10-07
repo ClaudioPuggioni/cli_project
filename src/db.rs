@@ -59,6 +59,14 @@ impl JiraDatabase {
                     Some(epic) => {
                         epic.stories.push(db.last_item_id);
                         db.stories.insert(db.last_item_id, story);
+
+                        self.write_db(&db).with_context(|| {
+                            format!(
+                                "Failed to write to database in create_story for id {}",
+                                db.last_item_id
+                            )
+                        })?;
+
                         Ok(db.last_item_id)
                     }
                     None => Err(anyhow!("Epic with id {} was not found", epic_id)),
@@ -80,6 +88,14 @@ impl JiraDatabase {
                             db.stories.remove(story_id);
                         }
                         db.epics.remove(&epic_id);
+
+                        self.write_db(&db).with_context(|| {
+                            format!(
+                                "Failed to write to database in delete_epic for epic {}",
+                                epic_id
+                            )
+                        })?;
+
                         Ok(())
                     }
                     None => Err(anyhow!("Epic with id {} was not found", &epic_id)),
@@ -103,6 +119,11 @@ impl JiraDatabase {
                         {
                             epic.stories.swap_remove(target_index);
                             db.stories.remove(&story_id);
+
+                            self.write_db(&db).with_context(|| {
+                                format!("Failed to write to database in delete_story for story with id {} and epic id {}", &story_id, &epic_id)
+                            })?;
+
                             Ok(())
                         } else {
                             Err(anyhow!(
@@ -129,6 +150,14 @@ impl JiraDatabase {
                 match associated_epic {
                     Some(epic) => {
                         epic.status = status;
+
+                        self.write_db(&db).with_context(|| {
+                            format!(
+                                "Failed to write to database in update_epic_status with epic id {}",
+                                &epic_id
+                            )
+                        })?;
+
                         Ok(())
                     }
                     None => Err(anyhow!("Epic with id {} was not found", &epic_id)),
@@ -148,6 +177,11 @@ impl JiraDatabase {
                 match associated_story {
                     Some(story) => {
                         story.status = status;
+
+                        self.write_db(&db).with_context(|| {
+                            format!("Failed to write to database in update_story_status with story id {}", &story_id)
+                        })?;
+
                         Ok(())
                     }
                     None => Err(anyhow!("Story with id {} was not found", &story_id)),
